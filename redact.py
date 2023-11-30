@@ -33,7 +33,7 @@ class ResizableWindow(QMainWindow):
 
     def mousePressEvent(self, event):
         self.oldPos = event.globalPos()
-        if event.button() == Qt.MiddleButton:
+        if event.button() == Qt.RightButton:
             self.close()
         elif event.button() == Qt.LeftButton:
             self.resizing, self.resize_direction = self.detect_resize_region(event.pos())
