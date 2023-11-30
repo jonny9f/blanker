@@ -1,4 +1,20 @@
 import tkinter as tk
+from tkinter import Menu
+
+
+class RootWindow(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title('Redact')
+        self.geometry('1x1+0+0')  # Make the window as small as possible and position at top-left
+        window = ResizableWindow()
+
+      
+    def new(self):
+        window = ResizableWindow()
+        window.mainloop()
+
+        
 
 class ResizableWindow(tk.Tk):
     def __init__(self):
@@ -20,6 +36,7 @@ class ResizableWindow(tk.Tk):
         self.grip_e = tk.Frame(self, cursor='right_side', bg='black')
         self.grip_e.bind("<ButtonPress-1>", lambda e: self.start_resize(e, 'e'))
         self.grip_e.bind("<B1-Motion>", self.on_horizontal_resize)
+
         self.grip_e.pack(side='right', fill='y', ipadx=self.grip_size)
 
         # Invisible frame for resizing from the bottom (vertical resize)
@@ -32,6 +49,10 @@ class ResizableWindow(tk.Tk):
         self.bind("<ButtonPress-1>", self.start_move)
         self.bind("<ButtonRelease-1>", self.stop_move)
         self.bind("<B1-Motion>", self.on_move)
+
+        # make a right click on the window close it
+        self.bind("<Button-2>", lambda e: self.destroy())
+
 
         # Keep the window on top
         self.attributes('-topmost', True)
@@ -72,7 +93,29 @@ class ResizableWindow(tk.Tk):
         self.geometry(f"{self.winfo_width()}x{new_height}")
 
 def main():
-    app = ResizableWindow()
+    app = RootWindow()
+
+    menubar = Menu(app)
+    app.config(menu=menubar)
+
+    window_menu = Menu(menubar)
+
+    def new_window():
+        app.new()
+
+    window_menu.add_command(
+        label='New',
+        command=new_window,
+        accelerator='Cmd+N'
+    )
+
+    # add the File menu to the menubar
+    menubar.add_cascade(
+        label="Window",
+        menu=window_menu 
+    )
+    app.bind('<Command-n>', lambda e: new_window())
+
     app.mainloop()
 
 if __name__ == "__main__":
