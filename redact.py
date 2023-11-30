@@ -1,116 +1,105 @@
-import tkinter as tk
-from tkinter import Menu
+import sys
+from PyQt5.QtCore import Qt, QPoint, QRect
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMenuBar, QAction
 
+class ResizableWindow(QMainWindow):
+    windows = []
+    RESIZE_MARGIN = 10
 
-
-class ResizableWindow(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        self.title("Redact")
+        self.setWindowTitle("Redact")
+        self.setStyleSheet("background-color: black;")
+        self.setGeometry(100, 100, 400, 400)
+        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
 
-        self.configure(bg='black')    # Set the background color
-        
-        ## default size
-        self.geometry('400x400')
-
-        self.grip_size = 10  # Size of the resize grip area
-
-        # Initialize variables for dragging
         self.dragging = False
-        self.startX = None
-        self.startY = None
+        self.resizing = False
+        self.resize_direction = None
 
-        # Invisible frame for resizing from the right (horizontal resize)
-        self.grip_e = tk.Frame(self, cursor='right_side', bg='black')
-        self.grip_e.bind("<ButtonPress-1>", lambda e: self.start_resize(e, 'e'))
-        self.grip_e.bind("<B1-Motion>", self.on_horizontal_resize)
+        # Menu bar setup
+        menubar = QMenuBar(self)
+        self.setMenuBar(menubar)
 
-        self.grip_e.pack(side='right', fill='y', ipadx=self.grip_size)
+        window_menu = menubar.addMenu("Window")
 
-        # Invisible frame for resizing from the bottom (vertical resize)
-        self.grip_s = tk.Frame(self, cursor='bottom_side', bg='black')
-        self.grip_s.bind("<ButtonPress-1>", lambda e: self.start_resize(e, 's'))
-        self.grip_s.bind("<B1-Motion>", self.on_vertical_resize)
-        self.grip_s.pack(side='bottom', fill='x', ipady=self.grip_size)
+        new_action = QAction("New", self)
+        new_action.setShortcut("Ctrl+N")
+        new_action.triggered.connect(self.new_window)
+        window_menu.addAction(new_action)
 
-        # Make the window draggable
-        self.bind("<ButtonPress-1>", self.start_move)
-        self.bind("<ButtonRelease-1>", self.stop_move)
-        self.bind("<B1-Motion>", self.on_move)
+        self.oldPos = self.pos()
 
-        # make a right click on the window close it
-        self.bind("<Button-2>", lambda e: self.destroy())
+    def mousePressEvent(self, event):
+        self.oldPos = event.globalPos()
+        if event.button() == Qt.MiddleButton:
+            self.close()
+        elif event.button() == Qt.LeftButton:
+            self.resizing, self.resize_direction = self.detect_resize_region(event.pos())
 
-        self.attributes('-topmost', True)
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.LeftButton and self.resizing:
+            self.perform_resize(event.globalPos())
+        elif event.buttons() == Qt.LeftButton and not self.resizing:
+            delta = QPoint(event.globalPos() - self.oldPos)
+            self.move(self.x() + delta.x(), self.y() + delta.y())
+            self.oldPos = event.globalPos()
 
-        menubar = Menu(self)
-        self.config(menu=menubar)
+    def mouseReleaseEvent(self, event):
+        self.resizing = False
 
-        window_menu = Menu(menubar)
+    def detect_resize_region(self, pos):
+        rect = self.rect()
+        resizing = False
+        direction = None
 
-        window_menu.add_command(
-            label='New',
-            command=self.new,
-            accelerator='Cmd+N'
-            )
+        # Detect corners and sides
+        if pos.y() < self.RESIZE_MARGIN:
+            if pos.x() < self.RESIZE_MARGIN:
+                direction = Qt.TopLeftCorner
+            elif pos.x() > rect.width() - self.RESIZE_MARGIN:
+                direction = Qt.TopRightCorner
+            else:
+                direction = Qt.TopEdge
+        elif pos.y() > rect.height() - self.RESIZE_MARGIN:
+            if pos.x() < self.RESIZE_MARGIN:
+                direction = Qt.BottomLeftCorner
+            elif pos.x() > rect.width() - self.RESIZE_MARGIN:
+                direction = Qt.BottomRightCorner
+            else:
+                direction = Qt.BottomEdge
+        elif pos.x() < self.RESIZE_MARGIN:
+            direction = Qt.LeftEdge
+        elif pos.x() > rect.width() - self.RESIZE_MARGIN:
+            direction = Qt.RightEdge
 
-        # add the File menu to the menubar
-        menubar.add_cascade(
-            label="Window",
-            menu=window_menu 
-            )
-        self.bind('<Command-n>', lambda e: self.new())
+        resizing = direction is not None
+        return resizing, direction
 
+    def perform_resize(self, globalPos):
+        rect = self.geometry()
+        if self.resize_direction in [Qt.TopLeftCorner, Qt.LeftEdge, Qt.BottomLeftCorner]:
+            rect.setLeft(globalPos.x())
+        if self.resize_direction in [Qt.TopLeftCorner, Qt.TopEdge, Qt.TopRightCorner]:
+            rect.setTop(globalPos.y())
+        if self.resize_direction in [Qt.BottomLeftCorner, Qt.BottomEdge, Qt.BottomRightCorner]:
+            rect.setBottom(globalPos.y())
+        if self.resize_direction in [Qt.TopRightCorner, Qt.RightEdge, Qt.BottomRightCorner]:
+            rect.setRight(globalPos.x())
 
+        self.setGeometry(rect)
 
-
-    def new(self):
-        window = ResizableWindow()
-
-        
-
-    def is_within_grips(self, event):
-        # Check if the event is within the bounds of the resize grips
-        if event.widget == self.grip_e or event.widget == self.grip_s:
-            return True
-        return False
-
-    def start_move(self, event):
-        if not self.is_within_grips(event):
-            self.dragging = True
-            self.startX = event.x
-            self.startY = event.y
-
-    def stop_move(self, event):
-        self.dragging = False
-        self.startX = None
-        self.startY = None
-
-    def on_move(self, event):
-        if self.dragging:
-            x = self.winfo_x() - self.startX + event.x
-            y = self.winfo_y() - self.startY + event.y
-            self.geometry(f"+{x}+{y}")
-
-    def start_resize(self, event, direction):
-        self.startX = event.x
-        self.startY = event.y
-
-    def on_horizontal_resize(self, event):
-        new_width = max(self.winfo_width() - self.startX + event.x, self.grip_size * 2)
-        self.geometry(f"{new_width}x{self.winfo_height()}")
-
-    def on_vertical_resize(self, event):
-        new_height = max(self.winfo_height() - self.startY + event.y, self.grip_size * 2)
-        self.geometry(f"{self.winfo_width()}x{new_height}")
-
-    
+    def new_window(self):
+        new_win = ResizableWindow()
+        new_win.show()
+        ResizableWindow.windows.append(new_win)
 
 def main():
-
-    root = ResizableWindow()
-    root.mainloop()
+    app = QApplication(sys.argv)
+    window = ResizableWindow()
+    window.show()
+    sys.exit(app.exec_())
 
 if __name__ == "__main__":
     main()
