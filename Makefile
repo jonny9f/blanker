@@ -1,8 +1,8 @@
-# Define the default target
+# Define the default target # dep is a redact.py
 all: build
 
-# Target to build the application
-build:
+# Target to build the application 
+build: redact.py
 	pyinstaller --onefile --windowed redact.py
 
 # Clean up the generated files
