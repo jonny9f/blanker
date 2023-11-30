@@ -19,4 +19,3 @@ Run simply with
 ## Knows Issues
 
 - cannot drag from bottom right corner to resize width and height at the same time
-- the bundle will not create a new instance by default. to create multiple instances from from terminal instance
