@@ -2,24 +2,13 @@ import tkinter as tk
 from tkinter import Menu
 
 
-class RootWindow(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.title('Redact')
-        self.geometry('1x1+0+0')  # Make the window as small as possible and position at top-left
-        window = ResizableWindow()
-
-      
-    def new(self):
-        window = ResizableWindow()
-        window.mainloop()
-
-        
 
 class ResizableWindow(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.overrideredirect(True)  # Remove the title bar
+
+        self.title("Redact")
+
         self.configure(bg='black')    # Set the background color
         
         ## default size
@@ -53,9 +42,33 @@ class ResizableWindow(tk.Tk):
         # make a right click on the window close it
         self.bind("<Button-2>", lambda e: self.destroy())
 
-
-        # Keep the window on top
         self.attributes('-topmost', True)
+
+        menubar = Menu(self)
+        self.config(menu=menubar)
+
+        window_menu = Menu(menubar)
+
+        window_menu.add_command(
+            label='New',
+            command=self.new,
+            accelerator='Cmd+N'
+            )
+
+        # add the File menu to the menubar
+        menubar.add_cascade(
+            label="Window",
+            menu=window_menu 
+            )
+        self.bind('<Command-n>', lambda e: self.new())
+
+
+
+
+    def new(self):
+        window = ResizableWindow()
+
+        
 
     def is_within_grips(self, event):
         # Check if the event is within the bounds of the resize grips
@@ -92,31 +105,12 @@ class ResizableWindow(tk.Tk):
         new_height = max(self.winfo_height() - self.startY + event.y, self.grip_size * 2)
         self.geometry(f"{self.winfo_width()}x{new_height}")
 
+    
+
 def main():
-    app = RootWindow()
 
-    menubar = Menu(app)
-    app.config(menu=menubar)
-
-    window_menu = Menu(menubar)
-
-    def new_window():
-        app.new()
-
-    window_menu.add_command(
-        label='New',
-        command=new_window,
-        accelerator='Cmd+N'
-    )
-
-    # add the File menu to the menubar
-    menubar.add_cascade(
-        label="Window",
-        menu=window_menu 
-    )
-    app.bind('<Command-n>', lambda e: new_window())
-
-    app.mainloop()
+    root = ResizableWindow()
+    root.mainloop()
 
 if __name__ == "__main__":
     main()
