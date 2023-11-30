@@ -16,6 +16,3 @@ Run simply with
 ``` make ```
 - The bundle will be in ./dist
 
-## Knows Issues
-
-- cannot drag from bottom right corner to resize width and height at the same time
