@@ -3,3 +3,4 @@ redact.spec
 dist
 build
 
+.DS_Store
